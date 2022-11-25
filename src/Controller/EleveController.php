@@ -253,9 +253,9 @@ class EleveController extends AbstractController
     *         },
     *         @OA\Schema (
     *              type="object",
-    *              @OA\Property(property="nom", required=true, description="Nom de l'élève", type="string"),
-    *              @OA\Property(property="prenom", required=true, description="Prénom de l'élève", type="string"),
-    *              @OA\Property(property="moyenne", required=true, description="Moyenne de l'élève", type="float"),
+    *              @OA\Property(property="nom", required=false, description="Nom de l'élève", type="string"),
+    *              @OA\Property(property="prenom", required=false, description="Prénom de l'élève", type="string"),
+    *              @OA\Property(property="moyenne", required=false, description="Moyenne de l'élève", type="float"),
     *              @OA\Property(property="idProfesseur", required=false, description="L'identifiant du professeur de l'élève", type="integer"),
     *         )
     *     )
@@ -274,13 +274,22 @@ class EleveController extends AbstractController
     #[Route('api/eleves/{id}', name: 'updateEleve', methods:['PUT'])]
     public function updateEleve(Request $request, SerializerInterface $serializer, Eleve $currentEleve, EntityManagerInterface $em, ProfesseurRepository $profRepo, ValidatorInterface $validator, TagAwareCacheInterface $cachePool): JsonResponse{
         $newEleve = $serializer->deserialize($request->getContent(), Eleve::class, 'json');
-        $currentEleve->setNom($newEleve->getNom());
-        $currentEleve->setPrenom($newEleve->getPrenom());
-        $currentEleve->setMoyenne($newEleve->getMoyenne());
+        if ($newEleve->getNom()){
+            $currentEleve->setNom($newEleve->getNom());
+        }
+        if ($newEleve->getPrenom()){
+            $currentEleve->setPrenom($newEleve->getPrenom());
+        }
+        if ($newEleve->getMoyenne()){
+            $currentEleve->setMoyenne($newEleve->getMoyenne());
+        }
 
         $content = $request->toArray();
-        $idProf = $content['idProfesseur'] ?? -1;
-        $currentEleve->setProfesseur($profRepo->find($idProf));
+        if (isset($content['idProfesseur'])){
+            $idProf = $content['idProfesseur'] ?? -1;
+            $prof = $profRepo->find($idProf);
+            $prof->addElefe($currentEleve);
+        }
 
         $errors = $validator->validate($currentEleve);
         if ($errors->count() > 0) {
